@@ -1,7 +1,7 @@
 // lib/supabase/server.ts
 // Version serveur simplifiée sans dépendances Supabase
 
-export const createServerSupabaseClient = () => {
+export const createClient = () => {
   return {
     auth: {
       getUser: async () => {
