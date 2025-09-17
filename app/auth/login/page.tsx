@@ -1,60 +1,163 @@
-export default function ConsultationsPage() {
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+
+export default function LoginPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const router = useRouter()
+  const supabase = createClient()
+
+  const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setLoading(true)
+  setError('')
+
+  try {
+    console.log('=== DÉBUT CONNEXION ===')
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    console.log('Auth response:', { data, error })
+
+    if (error) {
+      console.log('Erreur auth:', error)
+      setError(error.message)
+      return
+    }
+
+    console.log('Pas d\'erreur auth')
+
+    if (data.user) {
+      console.log('Utilisateur connecté:', data.user)
+      
+      // Vérifier le type d'utilisateur
+      console.log('=== RECHERCHE PROFIL ===')
+      const { data: profile } = await supabase
+        .from('users')
+        .select('user_type')
+        .eq('id', data.user.id)
+        .single()
+
+      console.log('Profile data reçu:', profile)
+
+      // Redirection selon le type d'utilisateur
+      if (profile?.user_type === 'doctor' || profile?.user_type === 'admin') {
+        console.log('=== REDIRECTION MÉDICAL ===')
+        router.push('/dashboard/medical')
+        // Redirection de secours
+        setTimeout(() => {
+          console.log('Redirection forcée médical')
+          window.location.href = '/dashboard/medical'
+        }, 500)
+      } else {
+        console.log('=== REDIRECTION CONSULTATIONS ===')
+        router.push('/consultations')
+        // Redirection de secours
+        setTimeout(() => {
+          console.log('Redirection forcée consultations')
+          window.location.href = '/consultations'
+        }, 500)
+      }
+    } else {
+      console.log('Pas d\'utilisateur dans data')
+    }
+  } catch (error) {
+    console.error('Erreur complète:', error)
+    setError('Erreur de connexion')
+  } finally {
+    console.log('=== FIN CONNEXION ===')
+    setLoading(false)
+  }
+}
+
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="bg-green-100 border-b-4 border-green-500 p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center">
-            <div className="text-green-500 text-2xl mr-3">✅</div>
-            <div>
-              <h2 className="text-lg font-bold text-green-800">Connexion réussie !</h2>
-              <p className="text-green-700">Bienvenue dans votre espace patient</p>
-            </div>
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full space-y-8 p-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Connexion à Tibok
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Accédez à votre espace diagnostic IA
+          </p>
         </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-white rounded-lg shadow p-8">
-          <div className="text-center mb-8">
-            <div className="text-6xl mb-4">👤</div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Espace Patient</h1>
-            <p className="text-gray-600">Diagnostic dermatologique IA</p>
+        
+        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+          
+          <div>
+            <label htmlFor="email" className="sr-only">Email</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="password" className="sr-only">Mot de passe</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Mot de passe"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-blue-50 p-6 rounded-lg text-center">
-              <div className="text-3xl font-bold text-blue-600">0</div>
-              <div className="text-blue-800">Consultations</div>
-            </div>
-            <div className="bg-green-50 p-6 rounded-lg text-center">
-              <div className="text-3xl font-bold text-green-600">0</div>
-              <div className="text-green-800">Analyses</div>
-            </div>
-            <div className="bg-purple-50 p-6 rounded-lg text-center">
-              <div className="text-3xl font-bold text-purple-600">0</div>
-              <div className="text-purple-800">Rapports</div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <button className="w-full bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 text-lg font-medium">
-              📸 Nouvelle consultation photo
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {loading ? 'Connexion...' : 'Se connecter'}
             </button>
-            <button className="w-full bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 text-lg font-medium">
-              📋 Voir mes consultations
-            </button>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <div className="flex justify-between">
-              <a href="/auth/login" className="text-gray-600 hover:text-gray-800">
-                ← Retour à la connexion
-              </a>
-              <a href="/" className="text-blue-600 hover:text-blue-800">
-                🏠 Accueil →
-              </a>
-            </div>
+          <div className="text-center">
+            <a 
+              href="/auth/sign-up"
+              className="text-blue-600 hover:text-blue-500"
+            >
+              Pas de compte ? Créer un compte
+            </a>
           </div>
+
+          <div className="text-center">
+            <a 
+              href="/test-api"
+              className="text-green-600 hover:text-green-500 text-sm"
+            >
+              🧪 Accès direct API (pour tests)
+            </a>
+          </div>
+        </form>
+
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded">
+          <h3 className="text-sm font-medium text-blue-800">Configuration Supabase</h3>
+          <p className="text-xs text-blue-700 mt-1">
+            Authentification connectée à Supabase. Assurez-vous que vos variables d'environnement sont configurées.
+          </p>
         </div>
       </div>
     </div>
