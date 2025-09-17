@@ -4,7 +4,7 @@ import { openai } from "@ai-sdk/openai"
 import { generateObject } from "ai"
 import { z } from "zod"
 
-// Schema for the photo analysis report
+// Schema pour l'analyse photo (inchangé)
 const PhotoAnalysisSchema = z.object({
   lesions: z.array(
     z.object({
@@ -21,6 +21,19 @@ const PhotoAnalysisSchema = z.object({
   orientation: z.string().describe("Orientation thérapeutique (urgent, non urgent, suivi)"),
 })
 
+// Auth bypass function
+async function authenticateRequest(request: NextRequest) {
+  const apiKey = request.headers.get('x-api-key')
+  
+  if (apiKey === process.env.TIBOK_API_KEY) {
+    return { user: { id: 'system' }, isService: true, error: null }
+  }
+
+  const supabase = await createClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  return { user, isService: false, error }
+}
+
 const DERMATOLOGY_SYSTEM_PROMPT = `Tu es un dermatologue expert avec 20 ans d'expérience clinique. 
 
 Analyse les images cliniques fournies et produis un rapport JSON structuré selon le schéma demandé.
@@ -31,99 +44,57 @@ RÈGLES IMPORTANTES :
 - Être précis dans les descriptions morphologiques
 - Limiter le diagnostic différentiel à 3 hypothèses maximum
 - Utiliser la terminologie médicale française appropriée
-- Toujours recommander une consultation médicale pour confirmation
-
-CRITÈRES D'ANALYSE :
-- Morphologie des lésions (macule, papule, plaque, nodule, etc.)
-- Couleur et pigmentation
-- Bordures (nettes, floues, irrégulières)
-- Distribution et localisation
-- Signes inflammatoires
-- Asymétrie, bordures, couleur, diamètre (critères ABCD pour mélanome)
-
-SIGNAUX D'ALARME À RECHERCHER :
-- Asymétrie marquée
-- Bordures irrégulières
-- Couleurs multiples ou inhabituelle
-- Diamètre > 6mm
-- Évolution rapide
-- Ulcération
-- Saignement
-- Prurit intense`
+- Toujours recommander une consultation médicale pour confirmation`
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-
-    // Check authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    
+    // Authentification avec bypass
+    const auth = await authenticateRequest(request)
+    if (auth.error || !auth.user) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-    // Parse request body
     const body = await request.json()
-    const { consultation_id, photo_storage_paths } = body
+    const { consultation_id, photo_urls, context } = body
 
-    if (!consultation_id || !photo_storage_paths || !Array.isArray(photo_storage_paths)) {
-      return NextResponse.json({ error: "Paramètres manquants" }, { status: 400 })
+    if (!photo_urls || !Array.isArray(photo_urls)) {
+      return NextResponse.json({ error: "photo_urls requis" }, { status: 400 })
     }
 
-    // Verify user has access to this consultation
-    const { data: consultation, error: consultationError } = await supabase
-      .from("consultations")
-      .select("*")
-      .eq("id", consultation_id)
-      .single()
+    // Si c'est un service, skip la vérification de consultation
+    let consultation = null
+    if (!auth.isService) {
+      const { data: consultationData, error: consultationError } = await supabase
+        .from("consultations")
+        .select("*")
+        .eq("id", consultation_id)
+        .single()
 
-    if (consultationError || !consultation) {
-      return NextResponse.json({ error: "Consultation non trouvée" }, { status: 404 })
-    }
-
-    if (consultation.patient_id !== user.id && consultation.doctor_id !== user.id) {
-      return NextResponse.json({ error: "Accès refusé" }, { status: 403 })
-    }
-
-    // Generate signed URLs for the photos (5 minutes expiry for AI analysis)
-    const signedUrls: string[] = []
-    for (const path of photo_storage_paths) {
-      const { data: signedUrl, error: urlError } = await supabase.storage
-        .from("clinical-photos")
-        .createSignedUrl(path, 300)
-
-      if (urlError || !signedUrl) {
-        console.error("Error generating signed URL:", urlError)
-        return NextResponse.json({ error: "Erreur lors de l'accès aux images" }, { status: 422 })
+      if (consultationError || !consultationData) {
+        return NextResponse.json({ error: "Consultation non trouvée" }, { status: 404 })
       }
 
-      signedUrls.push(signedUrl.signedUrl)
+      if (consultationData.patient_id !== auth.user.id && consultationData.doctor_id !== auth.user.id) {
+        return NextResponse.json({ error: "Accès refusé" }, { status: 403 })
+      }
+      consultation = consultationData
     }
 
-    // Get consultation context if available
-    const { data: consultationState } = await supabase
-      .from("consultations_state")
-      .select("clinical_text")
-      .eq("consultation_id", consultation_id)
-      .single()
-
-    // Prepare context for AI analysis
-    const context = {
-      patient_age: consultation.patient_age,
-      patient_gender: consultation.patient_gender,
-      chief_complaint: consultation.chief_complaint,
-      symptoms: consultation.symptoms,
-      medical_history: consultation.medical_history,
-      current_medications: consultation.current_medications,
-      clinical_context: consultationState?.clinical_text || {},
+    // Préparation du contexte (utilise le contexte fourni si service)
+    const analysisContext = context || {
+      patient_age: consultation?.patient_age,
+      patient_gender: consultation?.patient_gender,
+      chief_complaint: consultation?.chief_complaint,
+      symptoms: consultation?.symptoms,
+      medical_history: consultation?.medical_history,
+      current_medications: consultation?.current_medications,
     }
 
     const startTime = Date.now()
 
-    // Call OpenAI Vision API
+    // Appel à l'API OpenAI
     const { object: report } = await generateObject({
       model: openai("gpt-4o"),
       schema: PhotoAnalysisSchema,
@@ -135,15 +106,14 @@ export async function POST(request: NextRequest) {
             {
               type: "text",
               text: `Contexte clinique :
-Patient : ${context.patient_age} ans, ${context.patient_gender}
-Motif de consultation : ${context.chief_complaint || "Non spécifié"}
-Symptômes : ${Array.isArray(context.symptoms) ? context.symptoms.join(", ") : "Non spécifiés"}
-Antécédents : ${Array.isArray(context.medical_history) ? context.medical_history.join(", ") : "Non spécifiés"}
-Traitements actuels : ${context.current_medications || "Aucun"}
+Patient : ${analysisContext.patient_age || 'N/A'} ans, ${analysisContext.patient_gender || 'N/A'}
+Motif : ${analysisContext.chief_complaint || "Non spécifié"}
+Symptômes : ${Array.isArray(analysisContext.symptoms) ? analysisContext.symptoms.join(", ") : "Non spécifiés"}
+Antécédents : ${Array.isArray(analysisContext.medical_history) ? analysisContext.medical_history.join(", ") : "Non spécifiés"}
 
-Analyse les images cliniques suivantes et fournis un rapport structuré :`,
+Analyse les images suivantes :`,
             },
-            ...signedUrls.map((url) => ({
+            ...photo_urls.map((url: string) => ({
               type: "image" as const,
               image: url,
             })),
@@ -155,111 +125,42 @@ Analyse les images cliniques suivantes et fournis un rapport structuré :`,
     })
 
     const latency = Date.now() - startTime
+    const estimatedCost = photo_urls.length * 0.01 + 0.005
 
-    // Estimate cost (rough calculation for GPT-4o Vision)
-    const estimatedCost = signedUrls.length * 0.01 + 0.005 // Base cost per image + text processing
-
-    // Save the report to database
-    const { data: savedReport, error: saveError } = await supabase
-      .from("ai_photo_reports")
-      .insert({
-        consultation_id,
-        model: "gpt-4o",
-        prompt_version: "derm-v1",
-        input_photos: photo_storage_paths,
-        report,
-        latency_ms: latency,
-        cost_usd: estimatedCost,
-      })
-      .select()
-      .single()
-
-    if (saveError) {
-      console.error("Error saving report:", saveError)
-      return NextResponse.json({ error: "Erreur lors de la sauvegarde" }, { status: 500 })
+    // Sauvegarde seulement si pas un service
+    let savedReport = null
+    if (!auth.isService && consultation_id) {
+      const { data } = await supabase
+        .from("ai_photo_reports")
+        .insert({
+          consultation_id,
+          model: "gpt-4o",
+          prompt_version: "derm-v1",
+          input_photos: photo_urls,
+          report,
+          latency_ms: latency,
+          cost_usd: estimatedCost,
+        })
+        .select()
+        .single()
+      
+      savedReport = data
     }
 
     return NextResponse.json({
-      photo_report_id: savedReport.id,
+      photo_report_id: savedReport?.id || null,
       report,
       metadata: {
         latency_ms: latency,
         cost_usd: estimatedCost,
         model: "gpt-4o",
         prompt_version: "derm-v1",
-        images_analyzed: signedUrls.length,
+        images_analyzed: photo_urls.length,
+        service_mode: auth.isService,
       },
     })
   } catch (error) {
     console.error("Photo diagnosis error:", error)
-
-    if (error instanceof Error) {
-      // Handle specific OpenAI errors
-      if (error.message.includes("rate_limit")) {
-        return NextResponse.json({ error: "Limite de taux atteinte, veuillez réessayer plus tard" }, { status: 429 })
-      }
-      if (error.message.includes("timeout")) {
-        return NextResponse.json({ error: "Délai d'attente dépassé" }, { status: 504 })
-      }
-      if (error.message.includes("invalid_image")) {
-        return NextResponse.json({ error: "Format d'image invalide" }, { status: 422 })
-      }
-    }
-
-    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 })
-  }
-}
-
-// GET endpoint to retrieve existing photo reports
-export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { searchParams } = new URL(request.url)
-    const consultationId = searchParams.get("consultation_id")
-
-    if (!consultationId) {
-      return NextResponse.json({ error: "consultation_id requis" }, { status: 400 })
-    }
-
-    // Check authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
-    }
-
-    // Verify access to consultation
-    const { data: consultation, error: consultationError } = await supabase
-      .from("consultations")
-      .select("patient_id, doctor_id")
-      .eq("id", consultationId)
-      .single()
-
-    if (consultationError || !consultation) {
-      return NextResponse.json({ error: "Consultation non trouvée" }, { status: 404 })
-    }
-
-    if (consultation.patient_id !== user.id && consultation.doctor_id !== user.id) {
-      return NextResponse.json({ error: "Accès refusé" }, { status: 403 })
-    }
-
-    // Get photo reports
-    const { data: reports, error: reportsError } = await supabase
-      .from("ai_photo_reports")
-      .select("*")
-      .eq("consultation_id", consultationId)
-      .order("created_at", { ascending: false })
-
-    if (reportsError) {
-      return NextResponse.json({ error: "Erreur lors de la récupération des rapports" }, { status: 500 })
-    }
-
-    return NextResponse.json({ reports: reports || [] })
-  } catch (error) {
-    console.error("Get photo reports error:", error)
     return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 })
   }
 }
