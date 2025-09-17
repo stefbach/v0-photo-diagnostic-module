@@ -13,43 +13,69 @@ export default function LoginPage() {
   const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+  e.preventDefault()
+  setLoading(true)
+  setError('')
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+  try {
+    console.log('=== DÉBUT CONNEXION ===')
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-      if (error) {
-        setError(error.message)
-        return
-      }
+    console.log('Auth response:', { data, error })
 
-      if (data.user) {
-        // Vérifier le type d'utilisateur
-        const { data: profile } = await supabase
-          .from('users')
-          .select('user_type')
-          .eq('id', data.user.id)
-          .single()
-
-        // Redirection selon le type d'utilisateur
-        if (profile?.user_type === 'doctor' || profile?.user_type === 'admin') {
-          router.push('/dashboard/medical')
-        } else {
-          router.push('/consultations')
-        }
-      }
-    } catch (error) {
-      console.error('Login error:', error)
-      setError('Erreur de connexion')
-    } finally {
-      setLoading(false)
+    if (error) {
+      console.log('Erreur auth:', error)
+      setError(error.message)
+      return
     }
+
+    console.log('Pas d\'erreur auth')
+
+    if (data.user) {
+      console.log('Utilisateur connecté:', data.user)
+      
+      // Vérifier le type d'utilisateur
+      console.log('=== RECHERCHE PROFIL ===')
+      const { data: profile } = await supabase
+        .from('users')
+        .select('user_type')
+        .eq('id', data.user.id)
+        .single()
+
+      console.log('Profile data reçu:', profile)
+
+      // Redirection selon le type d'utilisateur
+      if (profile?.user_type === 'doctor' || profile?.user_type === 'admin') {
+        console.log('=== REDIRECTION MÉDICAL ===')
+        router.push('/dashboard/medical')
+        // Redirection de secours
+        setTimeout(() => {
+          console.log('Redirection forcée médical')
+          window.location.href = '/dashboard/medical'
+        }, 500)
+      } else {
+        console.log('=== REDIRECTION CONSULTATIONS ===')
+        router.push('/consultations')
+        // Redirection de secours
+        setTimeout(() => {
+          console.log('Redirection forcée consultations')
+          window.location.href = '/consultations'
+        }, 500)
+      }
+    } else {
+      console.log('Pas d\'utilisateur dans data')
+    }
+  } catch (error) {
+    console.error('Erreur complète:', error)
+    setError('Erreur de connexion')
+  } finally {
+    console.log('=== FIN CONNEXION ===')
+    setLoading(false)
   }
+}
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
