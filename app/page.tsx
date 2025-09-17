@@ -29,6 +29,9 @@ export default function HomePage() {
               <Button asChild>
                 <a href="/auth/sign-up">S'inscrire</a>
               </Button>
+              <Button variant="secondary" asChild>
+                <a href="/demo.html">📸 Démo</a>
+              </Button>
               <Button variant="default" asChild>
                 <a href="/test-api">🧪 Test API</a>
               </Button>
@@ -55,8 +58,8 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
-              <a href="/auth/sign-up">
-                Commencer l'analyse
+              <a href="/demo.html">
+                📸 Essayer la Démo
                 <ArrowRight className="h-5 w-5 ml-2" />
               </a>
             </Button>
@@ -71,6 +74,66 @@ export default function HomePage() {
                 🧪 Test API Direct
               </a>
             </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Demo Section */}
+      <section className="bg-gradient-to-r from-blue-50 to-purple-50 py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center space-y-4 mb-12">
+            <h2 className="text-3xl font-bold">🚀 Démonstration Interactive</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Testez notre IA de diagnostic dermatologique directement depuis votre navigateur. 
+              Aucune inscription requise pour la démonstration.
+            </p>
+          </div>
+
+          <div className="max-w-3xl mx-auto">
+            <Card className="border-2 border-primary/20 bg-white/80 backdrop-blur">
+              <CardHeader className="text-center">
+                <CardTitle className="flex items-center justify-center gap-3">
+                  <Camera className="h-6 w-6 text-primary" />
+                  Interface de Démonstration
+                  <Badge variant="default" className="ml-2">Gratuit</Badge>
+                </CardTitle>
+                <CardDescription className="text-base">
+                  Uploadez jusqu'à 5 photos médicales et obtenez une analyse IA complète 
+                  avec diagnostic différentiel et recommandations
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <div className="grid md:grid-cols-3 gap-4 mb-6">
+                  <div className="flex flex-col items-center p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100">
+                    <div className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center mb-2">
+                      📤
+                    </div>
+                    <h4 className="font-semibold">Upload Simple</h4>
+                    <p className="text-sm text-muted-foreground">Glisser-déposer ou sélection</p>
+                  </div>
+                  <div className="flex flex-col items-center p-4 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100">
+                    <div className="w-12 h-12 bg-purple-500 text-white rounded-full flex items-center justify-center mb-2">
+                      🧠
+                    </div>
+                    <h4 className="font-semibold">Analyse IA</h4>
+                    <p className="text-sm text-muted-foreground">Diagnostic en temps réel</p>
+                  </div>
+                  <div className="flex flex-col items-center p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100">
+                    <div className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center mb-2">
+                      📋
+                    </div>
+                    <h4 className="font-semibold">Rapport Médical</h4>
+                    <p className="text-sm text-muted-foreground">Résultats détaillés</p>
+                  </div>
+                </div>
+                <Button size="lg" asChild className="w-full sm:w-auto">
+                  <a href="/demo.html" target="_blank" rel="noopener noreferrer">
+                    🚀 Lancer la Démonstration
+                    <ArrowRight className="h-5 w-5 ml-2" />
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
@@ -90,15 +153,15 @@ export default function HomePage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Camera className="h-5 w-5 text-green-600" />
-                  Test Interactive
+                  Démo Interactive
                 </CardTitle>
                 <CardDescription>
-                  Interface web pour tester l'API directement depuis votre navigateur
+                  Interface web pour tester l'IA directement depuis votre navigateur
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Button asChild className="w-full">
-                  <a href="/test-api">Ouvrir l'Interface de Test</a>
+                  <a href="/demo.html">Ouvrir la Démonstration</a>
                 </Button>
               </CardContent>
             </Card>
@@ -126,6 +189,9 @@ export default function HomePage() {
                   </code>
                   <span className="ml-2 text-gray-600">Analyse photo</span>
                 </div>
+                <Button variant="outline" asChild className="w-full mt-4">
+                  <a href="/test-api">Interface de Test API</a>
+                </Button>
               </CardContent>
             </Card>
           </div>
