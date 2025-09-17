@@ -1,32 +1,12 @@
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+// app/page.tsx
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Stethoscope, Brain, Camera, Shield, ArrowRight, Users } from "lucide-react"
 
-export default async function HomePage() {
-  const supabase = await createClient()
-
-  // Check if user is authenticated
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // If authenticated, redirect to appropriate dashboard
-  if (user) {
-    // Check user role
-    const { data: doctor } = await supabase.from("doctors").select("*").eq("user_id", user.id).single()
-
-    const { data: admin } = await supabase.from("admins").select("*").eq("user_id", user.id).single()
-
-    if (doctor || admin) {
-      redirect("/dashboard/medical")
-    } else {
-      redirect("/consultations")
-    }
-  }
-
+export default function HomePage() {
+  // Pas d'authentification automatique - page statique simple
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       {/* Header */}
@@ -48,6 +28,9 @@ export default async function HomePage() {
               </Button>
               <Button asChild>
                 <a href="/auth/sign-up">S'inscrire</a>
+              </Button>
+              <Button variant="default" asChild>
+                <a href="/test-api">🧪 Test API</a>
               </Button>
             </div>
           </div>
@@ -78,11 +61,73 @@ export default async function HomePage() {
               </a>
             </Button>
             <Button variant="outline" size="lg" asChild>
-              <a href="/auth/login">
+              <a href="/consultations">
                 <Users className="h-5 w-5 mr-2" />
-                Espace professionnel
+                Espace consultation
               </a>
             </Button>
+            <Button variant="secondary" size="lg" asChild>
+              <a href="/test-api">
+                🧪 Test API Direct
+              </a>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* API Access Section */}
+      <section className="bg-gradient-to-r from-green-50 to-blue-50 py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center space-y-4 mb-12">
+            <h2 className="text-3xl font-bold">🔌 Accès API Développeur</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Intégrez notre IA de diagnostic dans vos applications. API prête à l'emploi, sans configuration complexe.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Camera className="h-5 w-5 text-green-600" />
+                  Test Interactive
+                </CardTitle>
+                <CardDescription>
+                  Interface web pour tester l'API directement depuis votre navigateur
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild className="w-full">
+                  <a href="/test-api">Ouvrir l'Interface de Test</a>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="h-5 w-5 text-blue-600" />
+                  API Endpoints
+                </CardTitle>
+                <CardDescription>
+                  Accès direct aux endpoints pour intégration service-to-service
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="text-sm">
+                  <code className="bg-gray-100 px-2 py-1 rounded">
+                    GET /api/test
+                  </code>
+                  <span className="ml-2 text-gray-600">Test de connectivité</span>
+                </div>
+                <div className="text-sm">
+                  <code className="bg-gray-100 px-2 py-1 rounded">
+                    POST /api/simple-photo-analysis
+                  </code>
+                  <span className="ml-2 text-gray-600">Analyse photo</span>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
@@ -226,7 +271,7 @@ export default async function HomePage() {
               <Stethoscope className="h-5 w-5 text-primary" />
               <span className="font-semibold">Tibok</span>
               <Badge variant="outline" className="text-xs">
-                v1.0
+                v2.0
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
