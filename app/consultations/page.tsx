@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -36,11 +35,26 @@ export default function ConsultationsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Success Banner - Confirmation de redirection */}
+      <div className="bg-green-50 border-b border-green-200">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-center">
+            <div className="text-green-600 text-sm mr-2">✅</div>
+            <p className="text-green-800 font-medium">
+              Connexion réussie ! Bienvenue dans votre espace patient.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-900">Mes Consultations</h1>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Mes Consultations</h1>
+              <p className="text-gray-600 mt-1">Espace patient - Diagnostic dermatologique IA</p>
+            </div>
             <div className="flex gap-4">
               <a 
                 href="/test-api" 
@@ -49,10 +63,10 @@ export default function ConsultationsPage() {
                 🧪 Test API
               </a>
               <a 
-                href="/" 
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                href="/auth/login" 
+                className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
               >
-                Accueil
+                ← Déconnexion
               </a>
             </div>
           </div>
@@ -129,7 +143,7 @@ export default function ConsultationsPage() {
             {/* New Consultation Button */}
             <div className="mt-8 text-center">
               <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
-                Nouvelle Consultation
+                📸 Nouvelle Consultation Photo
               </button>
             </div>
           </>
@@ -159,29 +173,43 @@ export default function ConsultationsPage() {
             </button>
           </div>
         </div>
-      </div>
-    </div>
-  )
-}
-export default function ConsultationsPage() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 text-center">
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-          <div className="text-green-600 text-4xl mb-4">✅</div>
-          <h1 className="text-2xl font-bold text-green-800 mb-2">
-            Page Consultations
-          </h1>
-          <p className="text-green-700">
-            Redirection réussie ! Vous êtes connecté en tant que <strong>patient</strong>.
-          </p>
-          <div className="mt-4">
-            <a 
-              href="/auth/login"
-              className="text-blue-600 hover:text-blue-500 underline"
-            >
-              ← Retour à la connexion
-            </a>
+
+        {/* Navigation et tests */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">🧭 Navigation</h3>
+            <div className="space-y-3">
+              <a 
+                href="/auth/login" 
+                className="block text-blue-600 hover:text-blue-800"
+              >
+                ← Retour à la connexion
+              </a>
+              <a 
+                href="/dashboard/medical" 
+                className="block text-blue-600 hover:text-blue-800"
+              >
+                🏥 Dashboard Médical (si vous êtes docteur)
+              </a>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">🧪 Tests</h3>
+            <div className="space-y-2">
+              <button 
+                onClick={() => alert('Test redirection OK ✅')}
+                className="w-full bg-green-100 text-green-800 px-3 py-2 rounded hover:bg-green-200"
+              >
+                Tester Alert
+              </button>
+              <button 
+                onClick={() => window.location.href = '/auth/login'}
+                className="w-full bg-blue-100 text-blue-800 px-3 py-2 rounded hover:bg-blue-200"
+              >
+                Test Redirection Login
+              </button>
+            </div>
           </div>
         </div>
       </div>
