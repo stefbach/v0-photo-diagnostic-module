@@ -1,8 +1,42 @@
 // lib/supabase/config.ts
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import type { Database } from './types'
+// Version simplifiée sans dépendances Supabase
 
-// Client pour les composants côté client
 export const createClient = () => {
-  return createClientComponentClient<Database>()
+  return {
+    auth: {
+      signInWithPassword: async ({ email, password }: { email: string, password: string }) => {
+        // Mode simulation pour développement
+        console.log('Simulation login:', { email, password })
+        return {
+          data: { user: { id: 'mock-user', email } },
+          error: null
+        }
+      },
+      signUp: async (options: any) => {
+        console.log('Simulation signup:', options)
+        return {
+          data: { user: { id: 'mock-user', email: options.email } },
+          error: null
+        }
+      },
+      getUser: async () => {
+        return {
+          data: { user: null },
+          error: null
+        }
+      }
+    },
+    from: (table: string) => ({
+      select: () => ({
+        eq: () => ({
+          single: () => ({ data: null, error: null })
+        })
+      }),
+      insert: () => ({
+        select: () => ({
+          single: () => ({ data: null, error: null })
+        })
+      })
+    })
+  }
 }
