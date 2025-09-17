@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/config'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -9,6 +10,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -16,20 +18,34 @@ export default function LoginPage() {
     setError('')
 
     try {
-      // TODO: Remplacer par votre logique d'authentification
-      // Pour l'instant, simulation d'une connexion
-      if (email && password) {
-        // Simulation d'une authentification réussie
-        console.log('Tentative de connexion:', { email, password })
-        
-        // Redirection vers le dashboard
-        router.push('/consultations')
-      } else {
-        setError('Email et mot de passe requis')
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        setError(error.message)
+        return
+      }
+
+      if (data.user) {
+        // Vérifier le type d'utilisateur
+        const { data: profile } = await supabase
+          .from('users')
+          .select('user_type')
+          .eq('id', data.user.id)
+          .single()
+
+        // Redirection selon le type d'utilisateur
+        if (profile?.user_type === 'doctor' || profile?.user_type === 'admin') {
+          router.push('/dashboard/medical')
+        } else {
+          router.push('/consultations')
+        }
       }
     } catch (error) {
-      setError('Erreur de connexion')
       console.error('Login error:', error)
+      setError('Erreur de connexion')
     } finally {
       setLoading(false)
     }
@@ -111,10 +127,10 @@ export default function LoginPage() {
           </div>
         </form>
 
-        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
-          <h3 className="text-sm font-medium text-yellow-800">Mode développement</h3>
-          <p className="text-xs text-yellow-700 mt-1">
-            Cette page est temporaire. Connectez Supabase pour l'authentification complète.
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded">
+          <h3 className="text-sm font-medium text-blue-800">Configuration Supabase</h3>
+          <p className="text-xs text-blue-700 mt-1">
+            Authentification connectée à Supabase. Assurez-vous que vos variables d'environnement sont configurées.
           </p>
         </div>
       </div>
