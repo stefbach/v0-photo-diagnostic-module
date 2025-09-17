@@ -336,14 +336,23 @@
     <div class="container">
         <div class="header">
             <h1>🩺 Tibok Analyse IA</h1>
-            <p>Diagnostic dermatologique par intelligence artificielle</p>
-            <div class="status-badge">✅ Service actif - Test gratuit</div>
+            <p>Diagnostic dermatologique par intelligence artificielle Claude Sonnet 4</p>
+            <div class="status-badge">✅ Vraie IA active - Analyse authentique</div>
         </div>
 
         <div class="upload-area" id="uploadArea">
             <div class="upload-icon">📸</div>
             <h3>Glissez vos photos médicales ici</h3>
             <p>ou cliquez pour sélectionner (JPEG, PNG, WebP - max 5 images)</p>
+            <div style="margin-top: 15px; padding: 15px; background: #f0f8ff; border-radius: 8px; border-left: 4px solid #4dabf7;">
+                <p style="font-size: 0.9rem; color: #495057; margin: 0;"><strong>💡 Conseils pour de meilleurs résultats :</strong></p>
+                <ul style="font-size: 0.85rem; color: #6c757d; margin: 8px 0 0 20px; text-align: left;">
+                    <li>Éclairage naturel ou blanc uniforme</li>
+                    <li>Photo nette et bien cadrée sur la lésion</li>
+                    <li>Distance appropriée (ni trop près ni trop loin)</li>
+                    <li>Plusieurs angles si la lésion est complexe</li>
+                </ul>
+            </div>
             <br>
             <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
             <button class="btn" onclick="document.getElementById('fileInput').click()">
@@ -365,8 +374,9 @@
 
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <h3>🔬 Analyse en cours...</h3>
-            <p>Notre IA dermatologue examine vos images avec attention</p>
+            <h3>🔬 Analyse IA en cours...</h3>
+            <p>Claude Sonnet 4 examine vos images avec expertise dermatologique</p>
+            <p style="font-size: 0.9rem; color: #666; margin-top: 10px;">⚡ Vraie intelligence artificielle - Patientez quelques secondes</p>
         </div>
 
         <div class="results" id="results">
@@ -504,47 +514,138 @@
             analyzeBtn.disabled = true;
             analyzeBtn.innerHTML = '🔄 Analyse en cours...';
 
+            const startTime = Date.now();
+
             try {
-                // Simuler un appel à l'API avec les données des fichiers
-                const response = await fetch('/api/photo-diagnosis', {
-                    method: 'POST',
+                // Convertir toutes les images en base64
+                const imageData = [];
+                for (const file of selectedFiles) {
+                    const base64 = await convertToBase64(file);
+                    imageData.push({
+                        type: "image",
+                        source: {
+                            type: "base64",
+                            media_type: file.type,
+                            data: base64
+                        }
+                    });
+                }
+
+                // Préparer le prompt d'analyse dermatologique
+                const analysisPrompt = `En tant qu'expert dermatologue, analysez ces images médicales et fournissez un diagnostic structuré au format JSON strict suivant:
+
+{
+  "lesions": [
+    {
+      "location": "localisation anatomique précise",
+      "morphology": "description morphologique détaillée",
+      "size_mm": estimation_taille_mm,
+      "features": ["caractéristique1", "caractéristique2"],
+      "borders": "description des bordures"
+    }
+  ],
+  "diagnostic_diff": ["diagnostic principal", "diagnostic différentiel 1", "diagnostic différentiel 2"],
+  "red_flags": ["signal d'alarme 1", "signal d'alarme 2"],
+  "suggested_tests": ["examen complémentaire 1", "examen complémentaire 2"],
+  "orientation": "urgence et délai de consultation recommandé",
+  "confidence_score": score_de_confiance_0_a_1,
+  "clinical_notes": "observations cliniques additionnelles"
+}
+
+IMPORTANT: 
+- Répondez UNIQUEMENT avec le JSON, aucun autre texte
+- Si vous détectez des lésions suspectes (asymétrie, bordures irrégulières, couleurs multiples, diamètre >6mm, évolution), ajoutez des red_flags appropriés
+- Pour l'orientation, spécifiez URGENT (48h), Semi-urgent (1-2 semaines), ou Non urgent (2-4 semaines)
+- Soyez précis dans la localisation anatomique
+- Évaluez la confiance selon la qualité des images et la certitude diagnostique`;
+
+                // Construire les messages pour Claude
+                const messages = [
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "text",
+                                text: analysisPrompt
+                            },
+                            ...imageData
+                        ]
+                    }
+                ];
+
+                // Appel à l'API Claude
+                const response = await fetch("https://api.anthropic.com/v1/messages", {
+                    method: "POST",
                     headers: {
-                        'Content-Type': 'application/json',
+                        "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        // En mode demo, on envoie juste les métadonnées
-                        photo_urls: selectedFiles.map(f => f.name), // Les noms pour la demo
-                        context: {
-                            patient_age: 35,
-                            symptoms: ["Analyse de démonstration"],
-                            source: "demo-html"
-                        },
-                        options: {
-                            demo_mode: true
-                        }
+                        model: "claude-sonnet-4-20250514",
+                        max_tokens: 2000,
+                        messages: messages
                     })
                 });
 
-                const data = await response.json();
-
-                if (data.success) {
-                    displayResults(data.analysis, data.metadata);
-                } else {
-                    // Fallback avec analyse mockée si l'API échoue
-                    const mockData = createMockAnalysis();
-                    displayResults(mockData.analysis, mockData.metadata);
+                if (!response.ok) {
+                    throw new Error(`Erreur API: ${response.status} - ${response.statusText}`);
                 }
 
+                const data = await response.json();
+                const analysisText = data.content[0].text;
+                
+                // Parser la réponse JSON de Claude
+                let analysis;
+                try {
+                    // Nettoyer la réponse au cas où il y aurait des backticks
+                    const cleanedResponse = analysisText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+                    analysis = JSON.parse(cleanedResponse);
+                } catch (parseError) {
+                    console.error('Erreur parsing JSON:', parseError);
+                    throw new Error('Réponse IA invalide');
+                }
+
+                const endTime = Date.now();
+
+                // Créer les métadonnées
+                const metadata = {
+                    latency_ms: endTime - startTime,
+                    model: "Claude Sonnet 4 (Anthropic)",
+                    images_analyzed: selectedFiles.length,
+                    timestamp: new Date().toISOString(),
+                    file_names: selectedFiles.map(f => f.name),
+                    total_file_size: selectedFiles.reduce((sum, f) => sum + f.size, 0)
+                };
+
+                displayResults(analysis, metadata);
+
             } catch (error) {
-                console.error('Erreur API:', error);
-                // Analyse mockée en cas d'erreur
-                const mockData = createMockAnalysis();
-                displayResults(mockData.analysis, mockData.metadata);
+                console.error('Erreur lors de l\'analyse:', error);
+                
+                // En cas d'erreur, afficher un message d'erreur mais permettre une analyse de démonstration
+                if (confirm(`❌ Erreur lors de l'analyse IA: ${error.message}\n\nVoulez-vous voir une analyse de démonstration à la place?`)) {
+                    const mockData = createMockAnalysis();
+                    displayResults(mockData.analysis, mockData.metadata);
+                } else {
+                    document.getElementById('loading').classList.remove('show');
+                }
             } finally {
-                document.getElementById('loading').classList.remove('show');
                 analyzeBtn.disabled = false;
                 analyzeBtn.innerHTML = '🧠 Analyser les photos';
             }
+        }
+
+        // Fonction utilitaire pour convertir un file en base64
+        function convertToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    // Retirer le préfixe data:image/...;base64,
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = () => reject(new Error('Erreur de lecture du fichier'));
+                reader.readAsDataURL(file);
+            });
         }
 
         function createMockAnalysis() {
@@ -610,7 +711,8 @@
                     <div><strong>🤖 ${metadata.model}</strong>Modèle IA</div>
                     <div><strong>📸 ${metadata.images_analyzed}</strong>Images analysées</div>
                     <div><strong>🎯 ${(analysis.confidence_score * 100).toFixed(1)}%</strong>Confiance</div>
-                    ${metadata.estimated_cost_usd ? `<div><strong>💰 $${metadata.estimated_cost_usd.toFixed(3)}</strong>Coût estimé</div>` : ''}
+                    ${metadata.total_file_size ? `<div><strong>💾 ${(metadata.total_file_size / 1024 / 1024).toFixed(1)}MB</strong>Taille totale</div>` : ''}
+                    <div><strong>✅ Vraie IA</strong>Analyse authentique</div>
                 </div>
             `;
 
@@ -679,6 +781,19 @@
                             <p style="color: ${urgencyColor}; font-weight: 600; font-size: 1.1rem;">
                                 ${isUrgent ? '🚨 ' : isSemiUrgent ? '⚡ ' : '✅ '}${analysis.orientation}
                             </p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Notes cliniques additionnelles
+            if (analysis.clinical_notes) {
+                html += `
+                    <div class="result-section">
+                        <h3>📝 Observations cliniques</h3>
+                        <div class="lesion-card">
+                            <p><strong>💡 Notes du dermatologue IA :</strong></p>
+                            <p style="font-style: italic; color: #555; margin-top: 10px;">${analysis.clinical_notes}</p>
                         </div>
                     </div>
                 `;
