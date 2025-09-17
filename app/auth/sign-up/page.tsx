@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/config'
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -9,11 +10,13 @@ export default function SignUpPage() {
     password: '',
     confirmPassword: '',
     fullName: '',
-    userType: 'patient'
+    userType: 'patient' as 'patient' | 'doctor'
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
   const router = useRouter()
+  const supabase = createClient()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -42,22 +45,69 @@ export default function SignUpPage() {
     }
 
     try {
-      // TODO: Remplacer par votre logique d'inscription
-      console.log('Tentative d\'inscription:', formData)
-      
-      // Simulation d'une inscription réussie
-      if (formData.email && formData.password && formData.fullName) {
-        // Redirection vers la page de connexion
-        router.push('/auth/login?message=Compte créé avec succès')
-      } else {
-        setError('Tous les champs sont requis')
+      // 1. Créer le compte utilisateur
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.fullName,
+            user_type: formData.userType,
+          }
+        }
+      })
+
+      if (authError) {
+        setError(authError.message)
+        return
+      }
+
+      if (authData.user) {
+        // 2. Créer le profil utilisateur dans la table users
+        const { error: profileError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: formData.email,
+            full_name: formData.fullName,
+            user_type: formData.userType,
+          })
+
+        if (profileError) {
+          console.error('Erreur création profil:', profileError)
+          // Ne pas bloquer si la création du profil échoue
+        }
+
+        setSuccess(true)
+        setTimeout(() => {
+          router.push('/auth/login?message=Compte créé avec succès')
+        }, 2000)
       }
     } catch (error) {
-      setError('Erreur lors de la création du compte')
       console.error('SignUp error:', error)
+      setError('Erreur lors de la création du compte')
     } finally {
       setLoading(false)
     }
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full space-y-8 p-8 text-center">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+            <div className="text-green-600 text-4xl mb-4">✅</div>
+            <h2 className="text-xl font-bold text-green-800 mb-2">
+              Compte créé avec succès !
+            </h2>
+            <p className="text-green-700 text-sm">
+              Vérifiez votre email pour confirmer votre compte.
+              Redirection vers la connexion...
+            </p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -180,9 +230,9 @@ export default function SignUpPage() {
         </form>
 
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded">
-          <h3 className="text-sm font-medium text-blue-800">Mode développement</h3>
+          <h3 className="text-sm font-medium text-blue-800">Création compte Supabase</h3>
           <p className="text-xs text-blue-700 mt-1">
-            Cette page est temporaire. Connectez Supabase pour l'authentification complète.
+            Votre compte sera créé dans Supabase. Un email de confirmation sera envoyé.
           </p>
         </div>
       </div>
