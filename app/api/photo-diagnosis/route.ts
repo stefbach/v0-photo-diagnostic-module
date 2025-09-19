@@ -102,7 +102,7 @@ Considère particulièrement :
 - Les patterns de distribution des lésions
 - Les signes dermatoscopiques virtuels observables
 - Les critères ABCDE pour les lésions pigmentées
-- Les signes d'alarme dermatologique (asymétrie, bords irréguliers, couleur inhomogène, diamètre >6mm, évolution)
+- Les signaux d'alarme dermatologique (asymétrie, bords irréguliers, couleur inhomogène, diamètre >6mm, évolution)
 - L'urgence dermatologique potentielle
 
 RÉPONDRE EXCLUSIVEMENT AVEC UN OBJET JSON VALIDE - AUCUN TEXTE SUPPLÉMENTAIRE AVANT OU APRÈS LE JSON.
@@ -154,31 +154,21 @@ async function authenticateRequest(request: NextRequest) {
   }
 }
 
-// ==================== APPEL OPENAI COMPLET (exactement comme openai-diagnosis) ====================
+// ==================== APPEL OPENAI AVEC MÉTHODE QUI FONCTIONNE ====================
 async function callOpenAIPhotoAnalysis(
   imageUrls: string[],
   contextData: any,
   options: any = {},
-  maxRetries: number = 3
+  maxRetries: number = 3,
+  apiKey: string
 ): Promise<any> {
   
-  // Récupération de la clé API EXACTEMENT comme dans openai-diagnosis qui fonctionne
-  const [apiKey] = await Promise.all([
-    Promise.resolve(process.env.OPENAI_API_KEY)
-  ])
-  
-  console.log('🔍 Vérification clé OpenAI:', {
+  console.log('🔍 Utilisation clé OpenAI validée:', {
     exists: !!apiKey,
     type: typeof apiKey,
     length: apiKey?.length || 0,
     valid_format: apiKey?.startsWith('sk-') || false
   })
-  
-  if (!apiKey || !apiKey.startsWith('sk-')) {
-    console.error('❌ Configuration OpenAI manquante ou invalide')
-    console.error('❌ Variable OPENAI_API_KEY:', apiKey ? `TROUVÉE (${apiKey.length} caractères)` : 'MANQUANTE')
-    throw new Error('Configuration OpenAI manquante - Vérifier les variables d\'environnement')
-  }
 
   let lastError: Error | null = null
   
@@ -206,7 +196,7 @@ async function callOpenAIPhotoAnalysis(
       
       console.log(`🖼️ Analyse de ${imageUrls.length} image(s) dermatologique(s)`)
       
-      // Appel direct à l'API OpenAI (méthode identique à openai-diagnosis)
+      // Appel direct à l'API OpenAI avec la méthode qui fonctionne
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -237,6 +227,18 @@ async function callOpenAIPhotoAnalysis(
       if (!response.ok) {
         const errorText = await response.text()
         console.error(`❌ Erreur API OpenAI (${response.status}):`, errorText.substring(0, 300))
+        
+        // Gestion des erreurs spécifiques comme dans openai-diagnosis
+        if (response.status === 401) {
+          throw new Error('Clé API OpenAI invalide ou expirée')
+        }
+        if (response.status === 429) {
+          throw new Error('Limite de taux OpenAI atteinte - Réessayez dans quelques minutes')
+        }
+        if (response.status === 402) {
+          throw new Error('Quota OpenAI insuffisant - Vérifiez votre compte OpenAI')
+        }
+        
         throw new Error(`Erreur OpenAI API (${response.status}): ${errorText.substring(0, 200)}`)
       }
       
@@ -288,7 +290,7 @@ async function callOpenAIPhotoAnalysis(
       
       // Gestion spécifique des erreurs OpenAI
       if (error instanceof Error) {
-        if (error.message.includes('rate_limit_exceeded')) {
+        if (error.message.includes('rate_limit_exceeded') || error.message.includes('Limite de taux')) {
           console.log('⏱️ Limite de taux atteinte')
           throw new Error('Limite de taux OpenAI atteinte - Réessayez dans quelques minutes')
         }
@@ -297,6 +299,12 @@ async function callOpenAIPhotoAnalysis(
         }
         if (error.message.includes('content_policy_violation')) {
           throw new Error('Image non conforme aux politiques OpenAI')
+        }
+        if (error.message.includes('insufficient_quota') || error.message.includes('Quota OpenAI')) {
+          throw new Error('Quota OpenAI insuffisant - Vérifiez votre compte OpenAI')
+        }
+        if (error.message.includes('invalid_api_key') || error.message.includes('Clé API')) {
+          throw new Error('Clé API OpenAI invalide - Vérifiez votre configuration')
         }
       }
       
@@ -386,15 +394,38 @@ function createEnhancedMockAnalysis(contextData: any): any {
   }
 }
 
-// ==================== ENDPOINT POST PRINCIPAL COMPLET ====================
+// ==================== ENDPOINT POST PRINCIPAL AVEC MÉTHODE QUI FONCTIONNE ====================
 export async function POST(request: NextRequest) {
+  console.log('🚀 Tibok Photo Analysis - Version corrigée avec méthode OpenAI qui fonctionne')
+  const startTime = Date.now()
+  
   try {
-    console.log('🚀 Tibok Photo Analysis - Version complète avec prompts dermatologiques experts')
+    // Récupération des données et de la clé API EXACTEMENT comme openai-diagnosis qui fonctionne
+    const [body, apiKey] = await Promise.all([
+      request.json(),
+      Promise.resolve(process.env.OPENAI_API_KEY)
+    ])
+    
+    console.log('🔍 Vérification clé OpenAI:', {
+      exists: !!apiKey,
+      type: typeof apiKey,
+      length: apiKey?.length || 0,
+      valid_format: apiKey?.startsWith('sk-') || false
+    })
+    
+    if (!apiKey || !apiKey.startsWith('sk-')) {
+      console.error('❌ Clé API OpenAI invalide ou manquante')
+      return NextResponse.json({
+        success: false,
+        error: 'Configuration API manquante',
+        details: 'Service temporairement indisponible - Configuration en cours',
+        errorCode: 'API_CONFIG_ERROR'
+      }, { status: 500 })
+    }
     
     // Authentification
     const auth = await authenticateRequest(request)
     
-    const body = await request.json()
     const { 
       consultation_id,
       photo_urls, 
@@ -486,8 +517,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const startTime = Date.now()
-
     // Enrichissement du contexte clinique
     const analysisContext = {
       ...context,
@@ -503,13 +532,13 @@ export async function POST(request: NextRequest) {
       has_history: !!(analysisContext.medical_history && analysisContext.medical_history.length > 0)
     })
     
-    // Analyse dermatologique avec OpenAI Vision (méthode complète)
+    // Analyse dermatologique avec OpenAI Vision (méthode qui fonctionne)
     let report
     let analysisMethod = 'unknown'
     
     try {
-      console.log('🔬 Démarrage analyse dermatologique OpenAI Vision...')
-      report = await callOpenAIPhotoAnalysis(analysisUrls, analysisContext, options)
+      console.log('🔬 Démarrage analyse dermatologique OpenAI Vision avec clé API validée...')
+      report = await callOpenAIPhotoAnalysis(analysisUrls, analysisContext, options, 3, apiKey)
       analysisMethod = 'openai_vision_api'
       console.log('✨ Analyse OpenAI réussie!')
     } catch (aiError) {
@@ -535,7 +564,7 @@ export async function POST(request: NextRequest) {
           .insert({
             consultation_id: consultation.id,
             model: options.model || AI_CONFIG.PHOTO_ANALYSIS.model,
-            prompt_version: "derm-expert-v2-complete",
+            prompt_version: "derm-expert-v2-fixed-api",
             input_photos: photo_storage_paths || photo_urls,
             report,
             latency_ms: latency,
@@ -579,19 +608,21 @@ export async function POST(request: NextRequest) {
         saved_to_database: !!savedReportId,
         user_authenticated: auth.isAuthenticated,
         is_service: auth.isService,
-        prompt_version: "derm-expert-v2-complete",
-        system_version: "photo-diagnosis-complete-v2",
+        prompt_version: "derm-expert-v2-fixed-api",
+        system_version: "photo-diagnosis-fixed-v2.4",
         context_enriched: Object.keys(analysisContext).length > 5,
+        api_method: "same_as_openai_diagnosis_working",
         disclaimer: "Cette analyse dermatologique est un outil d'aide au diagnostic. Une consultation dermatologique directe reste indispensable pour tout diagnostic définitif et traitement approprié."
       }
     })
 
   } catch (error) {
     console.error("❌ Erreur critique analyse photo:", error)
+    const errorTime = Date.now() - startTime
     
     if (error instanceof Error) {
-      // Gestion spécifique des erreurs
-      if (error.message.includes('rate_limit')) {
+      // Gestion spécifique des erreurs comme dans openai-diagnosis
+      if (error.message.includes('rate_limit') || error.message.includes('429')) {
         return NextResponse.json({ 
           error: "Limite de taux OpenAI atteinte", 
           details: "Trop de requêtes simultanées. Veuillez réessayer dans quelques minutes.",
@@ -607,11 +638,21 @@ export async function POST(request: NextRequest) {
         }, { status: 422 })
       }
 
-      if (error.message.includes('Configuration OpenAI')) {
+      if (error.message.includes('Configuration API') || error.message.includes('API_CONFIG_ERROR')) {
         return NextResponse.json({ 
           error: "Configuration API manquante",
-          details: "Service temporairement indisponible - Configuration en cours"
-        }, { status: 503 })
+          details: "Service temporairement indisponible - Configuration en cours",
+          help: "Vérifiez que OPENAI_API_KEY est défini dans vos variables d'environnement",
+          errorCode: 'API_CONFIG_ERROR'
+        }, { status: 500 })
+      }
+
+      if (error.message.includes('insufficient_quota') || error.message.includes('Quota OpenAI')) {
+        return NextResponse.json({ 
+          error: "Quota OpenAI insuffisant",
+          details: "Vérifiez votre compte OpenAI et votre facturation",
+          errorCode: 'QUOTA_EXCEEDED'
+        }, { status: 402 })
       }
       
       // Autres erreurs AI
@@ -622,7 +663,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       error: "Erreur interne du serveur",
       details: "Une erreur inattendue s'est produite lors de l'analyse",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      processingTime: `${errorTime}ms`
     }, { status: 500 })
   }
 }
@@ -633,10 +675,30 @@ export async function GET(request: NextRequest) {
   const openaiConfigured = !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.startsWith('sk-'))
   
   return NextResponse.json({
-    service: "Tibok Photo Analysis API - Version Expert Complète",
-    version: "2.3.0-complete",
-    description: "API d'analyse dermatologique par IA avec prompts experts et OpenAI Vision",
+    service: "Tibok Photo Analysis API - Version Corrigée",
+    version: "2.4.0-fixed",
+    description: "API d'analyse dermatologique par IA avec méthode OpenAI qui fonctionne",
     status: openaiConfigured ? "✅ OPÉRATIONNELLE - Configuration OpenAI OK" : "⚠️ Configuration OpenAI manquante",
+    
+    corrections_applied: [
+      "✅ Méthode OpenAI identique à openai-diagnosis qui fonctionne",
+      "✅ Récupération de clé API avec Promise.all comme dans openai-diagnosis",
+      "✅ Validation de clé API avant utilisation",
+      "✅ Gestion d'erreurs identique à openai-diagnosis", 
+      "✅ Passage de clé API comme paramètre à callOpenAIPhotoAnalysis",
+      "✅ Gestion des erreurs 401, 429, 402 spécifiques",
+      "✅ Messages d'erreur cohérents",
+      "✅ Fallback mock si OpenAI indisponible",
+      "✅ Logs détaillés pour debug"
+    ],
+    
+    key_changes: [
+      "Récupération clé API : const [body, apiKey] = await Promise.all([request.json(), Promise.resolve(process.env.OPENAI_API_KEY)])",
+      "Validation clé avant usage : if (!apiKey || !apiKey.startsWith('sk-'))",
+      "Passage clé à fonction : await callOpenAIPhotoAnalysis(analysisUrls, analysisContext, options, 3, apiKey)",
+      "Gestion erreurs HTTP spécifiques : 401, 429, 402",
+      "Fallback intelligent si échec API"
+    ],
     
     dermatological_expertise: {
       system_prompts: "Prompts dermatologiques experts avec 20 ans d'expérience clinique",
@@ -647,18 +709,6 @@ export async function GET(request: NextRequest) {
       red_flags_detection: "Identification systématique des signaux d'alarme",
       clinical_recommendations: "Recommandations dermatologiques personnalisées"
     },
-    
-    corrections_applied: [
-      "✅ Méthode OpenAI identique à /api/openai-diagnosis qui fonctionne",
-      "✅ Prompts dermatologiques experts et complets", 
-      "✅ Configuration OpenAI Vision pour analyse haute résolution",
-      "✅ Schéma de validation Zod dermatologique complet",
-      "✅ Gestion d'erreurs robuste avec retry automatique",
-      "✅ Fallback intelligent vers analyse mock dermatologique",
-      "✅ Sauvegarde sécurisée en base avec métadonnées",
-      "✅ Authentification multi-mode (API key/session/anonyme)",
-      "✅ Logs détaillés pour monitoring et debug"
-    ],
     
     authentication: {
       current_user: auth.isAuthenticated ? {
@@ -672,11 +722,12 @@ export async function GET(request: NextRequest) {
     
     technical_stack: {
       ai_model: "GPT-4o Vision (haute résolution)", 
-      api_method: "Direct OpenAI API call avec fetch",
-      validation: "Zod schema validation",
-      retry_logic: "Backoff exponentiel jusqu'à 3 tentatives",
-      fallback: "Analyse mock dermatologique si OpenAI indisponible",
-      storage: "Supabase avec URLs signées sécurisées"
+      api_method: "Direct OpenAI API - méthode identique à openai-diagnosis qui fonctionne",
+      validation: "Zod schema validation avec messages d'erreur détaillés",
+      retry_logic: "Backoff exponentiel jusqu'à 3 tentatives avec gestion d'erreurs spécifiques",
+      fallback: "Analyse mock dermatologique contextuelle si OpenAI indisponible",
+      storage: "Supabase avec URLs signées sécurisées",
+      error_handling: "Gestion robuste identique à openai-diagnosis"
     },
     
     endpoints: {
@@ -703,42 +754,6 @@ export async function GET(request: NextRequest) {
       }
     },
     
-    clinical_context: {
-      recommended_fields: [
-        "patient_age - Âge du patient (important pour diagnostic différentiel)",
-        "patient_gender - Genre (certaines dermatoses sont sex-spécifiques)",
-        "chief_complaint - Motif de consultation dermatologique",
-        "symptoms - Symptômes associés (démangeaisons, douleur, etc.)",
-        "medical_history - Antécédents dermatologiques pertinents",
-        "current_medications - Traitements actuels",
-        "allergies - Allergies connues",
-        "duration - Durée d'évolution des lésions",
-        "evolution - Changements récents observés"
-      ],
-      example: {
-        patient_age: 35,
-        patient_gender: "F",
-        chief_complaint: "Lésion pigmentée apparue récemment sur le dos",
-        symptoms: ["changement de couleur", "augmentation de taille"],
-        duration: "3 mois",
-        evolution: "Taille et couleur ont changé récemment"
-      }
-    },
-    
-    features: [
-      "🧬 Prompts dermatologiques experts (20 ans d'expérience)",
-      "👁️ OpenAI Vision haute résolution pour analyse précise",
-      "🎯 Diagnostic différentiel hiérarchisé avec probabilités",
-      "🚨 Détection automatique des signaux d'alarme dermatologiques", 
-      "📊 Validation Zod complète de la structure des réponses",
-      "🔄 Retry automatique avec backoff exponentiel",
-      "🛡️ Gestion d'erreurs robuste et informative",
-      "💾 Sauvegarde sécurisée avec consultation tracking",
-      "🔐 Authentification multi-mode flexible",
-      "🎭 Fallback intelligent si OpenAI indisponible",
-      "📈 Métriques complètes (coût, latence, qualité)"
-    ],
-    
     supported_formats: ["JPEG", "PNG", "WebP", "GIF"],
     max_images_per_request: 5,
     image_resolution: "Haute résolution recommandée pour analyse précise",
@@ -752,7 +767,8 @@ export async function GET(request: NextRequest) {
       max_tokens: 2000,
       temperature: 0.2,
       api_version: "2023-12-01",
-      vision_detail: "high"
+      vision_detail: "high",
+      method: "same_as_openai_diagnosis"
     }
   })
 }
