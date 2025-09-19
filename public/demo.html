@@ -3,331 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tibok - Analyse IA Sans Connexion</title>
+    <title>Diagnostic Photo - Tibok AI</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-        
+
         .container {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .header h1 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 2.5rem;
-        }
-        
-        .header p {
-            color: #666;
-            font-size: 1.1rem;
-        }
-        
-        .status-badge {
-            display: inline-block;
-            background: #e7f3ff;
-            color: #0066cc;
-            padding: 5px 15px;
             border-radius: 20px;
-            font-size: 0.9rem;
-            margin-top: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
         }
-        
-        .upload-area {
-            border: 3px dashed #ddd;
-            border-radius: 12px;
-            padding: 50px 30px;
+
+        .header {
+            background: linear-gradient(45deg, #2c3e50, #3498db);
+            color: white;
+            padding: 30px;
             text-align: center;
-            margin: 30px 0;
-            cursor: pointer;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .upload-section, .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px dashed #dee2e6;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
             transition: all 0.3s ease;
-            background: #fafafa;
         }
-        
-        .upload-area:hover, .upload-area.dragover {
-            border-color: #667eea;
-            background: #f0f4ff;
-            transform: translateY(-2px);
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
         }
-        
-        .upload-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-        }
-        
+
         .btn {
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(45deg, #3498db, #2980b9);
             color: white;
             border: none;
             padding: 15px 30px;
             border-radius: 8px;
+            cursor: pointer;
             font-size: 16px;
             font-weight: 600;
-            cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            width: 100%;
+            margin-top: 20px;
         }
-        
+
         .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
         }
-        
+
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
-            box-shadow: none;
         }
-        
-        .btn-secondary {
-            background: #f8f9fa;
-            color: #495057;
-            border: 2px solid #dee2e6;
-            box-shadow: none;
-        }
-        
-        .btn-secondary:hover {
-            background: #e9ecef;
-            border-color: #adb5bd;
-        }
-        
-        .preview-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-        }
-        
-        .preview-item {
-            position: relative;
-            border-radius: 12px;
-            overflow: hidden;
-            aspect-ratio: 1;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-        }
-        
-        .preview-item:hover {
-            transform: scale(1.05);
-        }
-        
-        .preview-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .preview-item .remove {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(255,255,255,0.95);
-            border: none;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            color: #dc3545;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-        
-        .preview-item .remove:hover {
-            background: #dc3545;
-            color: white;
-        }
-        
-        .preview-item .filename {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(transparent, rgba(0,0,0,0.8));
-            color: white;
-            padding: 15px 8px 8px;
-            font-size: 0.8rem;
-            text-overflow: ellipsis;
-            overflow: hidden;
-            white-space: nowrap;
-        }
-        
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 20px 0;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-        
-        .photo-count {
-            background: #28a745;
-            color: white;
-            padding: 5px 12px;
-            border-radius: 15px;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-        
-        .results {
-            margin-top: 40px;
-            padding: 30px;
-            background: #f8f9fa;
-            border-radius: 12px;
-            display: none;
-            border-left: 5px solid #28a745;
-        }
-        
-        .results.show {
-            display: block;
-        }
-        
+
         .loading {
-            text-align: center;
-            padding: 60px 40px;
             display: none;
+            text-align: center;
+            padding: 20px;
+            color: #3498db;
         }
-        
-        .loading.show {
-            display: block;
-        }
-        
+
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
             border-radius: 50%;
-            width: 60px;
-            height: 60px;
+            width: 40px;
+            height: 40px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+            margin: 0 auto 10px;
         }
-        
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
-        .result-section {
-            margin: 25px 0;
-            padding: 20px;
-            background: white;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .result-section h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 1.3rem;
-        }
-        
-        .lesion-card {
-            background: #fff;
-            border: 1px solid #e9ecef;
-            border-left: 4px solid #667eea;
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        .diagnostic-list {
-            list-style: none;
-        }
-        
-        .diagnostic-list li {
-            background: white;
-            padding: 15px;
-            margin: 8px 0;
-            border-radius: 8px;
-            border-left: 4px solid #28a745;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            font-weight: 500;
-        }
-        
-        .red-flag {
-            background: #fff5f5 !important;
-            border-left-color: #dc3545 !important;
-            color: #721c24;
-        }
-        
-        .metadata {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-            padding: 20px;
-            background: #e3f2fd;
-            border-radius: 10px;
-        }
-        
-        .metadata div {
-            text-align: center;
-            padding: 10px;
-        }
-        
-        .metadata strong {
-            display: block;
-            color: #1976d2;
-            font-size: 1.1rem;
-            margin-bottom: 5px;
-        }
-        
-        .disclaimer {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 10px;
-            padding: 20px;
+
+        .results-section {
+            grid-column: 1 / -1;
             margin-top: 30px;
-            font-size: 14px;
-            color: #856404;
-            border-left: 5px solid #ffc107;
+            padding: 25px;
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
-        
-        .disclaimer strong {
-            color: #8B4513;
+
+        .diagnostic-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
         }
-        
+
+        .red-flag {
+            background: #fff5f5;
+            border-left-color: #e74c3c;
+            color: #c0392b;
+        }
+
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            margin: 10px;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        .confidence-score {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .confidence-high { background: #d4edda; color: #155724; }
+        .confidence-moderate { background: #fff3cd; color: #856404; }
+        .confidence-low { background: #f8d7da; color: #721c24; }
+
         @media (max-width: 768px) {
-            .container {
-                padding: 20px;
-                margin: 10px;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .upload-area {
-                padding: 30px 20px;
-            }
-            
-            .controls {
-                flex-direction: column;
-                gap: 15px;
+            .content {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -335,476 +175,300 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🩺 Tibok Analyse IA</h1>
-            <p>Diagnostic dermatologique par intelligence artificielle Claude Sonnet 4</p>
-            <div class="status-badge">✅ Vraie IA active - Analyse authentique</div>
+            <h1>🏥 Tibok - Diagnostic Photo IA</h1>
+            <p>Analyse dermatologique assistée par intelligence artificielle</p>
         </div>
 
-        <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">📸</div>
-            <h3>Glissez vos photos médicales ici</h3>
-            <p>ou cliquez pour sélectionner (JPEG, PNG, WebP - max 5 images)</p>
-            <div style="margin-top: 15px; padding: 15px; background: #f0f8ff; border-radius: 8px; border-left: 4px solid #4dabf7;">
-                <p style="font-size: 0.9rem; color: #495057; margin: 0;"><strong>💡 Conseils pour de meilleurs résultats :</strong></p>
-                <ul style="font-size: 0.85rem; color: #6c757d; margin: 8px 0 0 20px; text-align: left;">
-                    <li>Éclairage naturel ou blanc uniforme</li>
-                    <li>Photo nette et bien cadrée sur la lésion</li>
-                    <li>Distance appropriée (ni trop près ni trop loin)</li>
-                    <li>Plusieurs angles si la lésion est complexe</li>
-                </ul>
+        <div class="content">
+            <div class="upload-section">
+                <h3>📷 Images Cliniques</h3>
+                <input type="file" id="imageInput" multiple accept="image/*" onchange="handleImageUpload(event)">
+                <div id="imageContainer"></div>
             </div>
-            <br>
-            <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
-            <button class="btn" onclick="document.getElementById('fileInput').click()">
-                📷 Choisir des photos
-            </button>
-        </div>
 
-        <div class="preview-grid" id="previewGrid"></div>
+            <div class="form-section">
+                <h3>📋 Contexte Clinique</h3>
+                
+                <div class="form-group">
+                    <label for="patientAge">Âge du patient</label>
+                    <input type="number" id="patientAge" placeholder="35">
+                </div>
 
-        <div class="controls" id="controls" style="display: none;">
-            <div class="photo-count" id="photoCount">0 photos sélectionnées</div>
-            <div>
-                <button class="btn btn-secondary" onclick="clearAll()">🗑️ Tout effacer</button>
-                <button class="btn" id="analyzeBtn" onclick="analyzePhotos()" style="margin-left: 10px;">
-                    🧠 Analyser les photos
+                <div class="form-group">
+                    <label for="patientGender">Genre</label>
+                    <select id="patientGender">
+                        <option value="">Sélectionner</option>
+                        <option value="M">Masculin</option>
+                        <option value="F">Féminin</option>
+                        <option value="Other">Autre</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="chiefComplaint">Motif de consultation</label>
+                    <input type="text" id="chiefComplaint" placeholder="Lésion cutanée, éruption...">
+                </div>
+
+                <div class="form-group">
+                    <label for="symptoms">Symptômes (séparés par virgules)</label>
+                    <textarea id="symptoms" rows="3" placeholder="démangeaisons, rougeur, douleur..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="medicalHistory">Antécédents médicaux</label>
+                    <textarea id="medicalHistory" rows="3" placeholder="allergies, maladies chroniques..."></textarea>
+                </div>
+
+                <button class="btn" onclick="analyzePhotos()">
+                    🔍 Analyser les Photos
                 </button>
             </div>
         </div>
 
-        <div class="loading" id="loading">
+        <div class="loading" id="loadingIndicator">
             <div class="spinner"></div>
-            <h3>🔬 Analyse IA en cours...</h3>
-            <p>Claude Sonnet 4 examine vos images avec expertise dermatologique</p>
-            <p style="font-size: 0.9rem; color: #666; margin-top: 10px;">⚡ Vraie intelligence artificielle - Patientez quelques secondes</p>
+            <p>Analyse en cours... Veuillez patienter</p>
         </div>
 
-        <div class="results" id="results">
-            <h2>📋 Résultats de l'analyse médicale</h2>
-            <div id="analysisContent"></div>
-        </div>
-
-        <div class="disclaimer">
-            <strong>⚠️ AVERTISSEMENT MÉDICAL IMPORTANT :</strong><br><br>
-            Cette analyse automatisée est un <strong>outil d'aide au diagnostic uniquement</strong>. 
-            Elle ne remplace en aucun cas l'avis d'un médecin qualifié. 
-            <strong>Consultez toujours un professionnel de santé</strong> pour un diagnostic définitif 
-            et un traitement approprié. En cas d'urgence médicale, contactez immédiatement les services d'urgence (15, 112).
+        <div class="results-section" id="resultsSection" style="display: none;">
+            <h3>📊 Résultats de l'Analyse</h3>
+            <div id="analysisResults"></div>
         </div>
     </div>
 
     <script>
-        let selectedFiles = [];
+        // Variables globales
+        let uploadedImages = [];
 
-        // Configuration
-        const MAX_FILES = 5;
-        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-        const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        // Gestion de l'upload d'images
+        function handleImageUpload(event) {
+            const files = Array.from(event.target.files);
+            const container = document.getElementById('imageContainer');
+            container.innerHTML = '';
 
-        // Elements
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const previewGrid = document.getElementById('previewGrid');
-        const analyzeBtn = document.getElementById('analyzeBtn');
-        const controls = document.getElementById('controls');
-        const photoCount = document.getElementById('photoCount');
-
-        // Setup drag & drop
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            handleFiles(e.target.files);
-        });
-
-        function handleFiles(files) {
-            for (let i = 0; i < Math.min(files.length, MAX_FILES - selectedFiles.length); i++) {
-                const file = files[i];
-                
-                // Validation
-                if (!ALLOWED_TYPES.includes(file.type.toLowerCase())) {
-                    alert(`❌ Format non supporté: ${file.name}\nFormats acceptés: JPEG, PNG, WebP`);
-                    continue;
+            files.forEach((file, index) => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'image-preview';
+                        img.alt = `Image ${index + 1}`;
+                        container.appendChild(img);
+                        
+                        // Stocker l'image en base64 pour l'analyse
+                        uploadedImages.push(e.target.result);
+                    };
+                    reader.readAsDataURL(file);
                 }
-                
-                if (file.size > MAX_FILE_SIZE) {
-                    alert(`❌ Fichier trop volumineux: ${file.name}\nTaille maximum: 10MB`);
-                    continue;
-                }
-                
-                selectedFiles.push(file);
-                addPreview(file, selectedFiles.length - 1);
-            }
-            
-            updateUI();
-        }
-
-        function addPreview(file, index) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const div = document.createElement('div');
-                div.className = 'preview-item';
-                div.innerHTML = `
-                    <img src="${e.target.result}" alt="Preview ${index + 1}">
-                    <button class="remove" onclick="removeFile(${index})" title="Supprimer">×</button>
-                    <div class="filename">${file.name}</div>
-                `;
-                previewGrid.appendChild(div);
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function removeFile(index) {
-            selectedFiles.splice(index, 1);
-            updatePreviews();
-            updateUI();
-        }
-
-        function updatePreviews() {
-            previewGrid.innerHTML = '';
-            selectedFiles.forEach((file, index) => {
-                addPreview(file, index);
             });
         }
 
-        function updateUI() {
-            const hasFiles = selectedFiles.length > 0;
-            controls.style.display = hasFiles ? 'flex' : 'none';
-            photoCount.textContent = `${selectedFiles.length} photo${selectedFiles.length > 1 ? 's' : ''} sélectionnée${selectedFiles.length > 1 ? 's' : ''}`;
-            analyzeBtn.disabled = !hasFiles;
-            
-            if (selectedFiles.length >= MAX_FILES) {
-                uploadArea.style.opacity = '0.5';
-                uploadArea.style.pointerEvents = 'none';
-            } else {
-                uploadArea.style.opacity = '1';
-                uploadArea.style.pointerEvents = 'auto';
-            }
-        }
-
-        function clearAll() {
-            selectedFiles = [];
-            previewGrid.innerHTML = '';
-            updateUI();
-            // Reset results
-            document.getElementById('results').classList.remove('show');
-        }
-
+        // Fonction principale d'analyse - CORRIGÉE
         async function analyzePhotos() {
-            if (selectedFiles.length === 0) {
-                alert('❌ Veuillez sélectionner au moins une photo');
-                return;
-            }
-
-            // Show loading
-            document.getElementById('loading').classList.add('show');
-            document.getElementById('results').classList.remove('show');
-            analyzeBtn.disabled = true;
-            analyzeBtn.innerHTML = '🔄 Analyse en cours...';
-
-            const startTime = Date.now();
-
             try {
-                // Convertir toutes les images en base64
-                const imageData = [];
-                for (const file of selectedFiles) {
-                    const base64 = await convertToBase64(file);
-                    imageData.push({
-                        type: "image",
-                        source: {
-                            type: "base64",
-                            media_type: file.type,
-                            data: base64
-                        }
-                    });
+                showLoading(true);
+                
+                if (uploadedImages.length === 0) {
+                    throw new Error('Veuillez uploader au moins une image');
                 }
-
-                // Préparer le prompt d'analyse dermatologique
-                const analysisPrompt = `En tant qu'expert dermatologue, analysez ces images médicales et fournissez un diagnostic structuré au format JSON strict suivant:
-
-{
-  "lesions": [
-    {
-      "location": "localisation anatomique précise",
-      "morphology": "description morphologique détaillée",
-      "size_mm": estimation_taille_mm,
-      "features": ["caractéristique1", "caractéristique2"],
-      "borders": "description des bordures"
-    }
-  ],
-  "diagnostic_diff": ["diagnostic principal", "diagnostic différentiel 1", "diagnostic différentiel 2"],
-  "red_flags": ["signal d'alarme 1", "signal d'alarme 2"],
-  "suggested_tests": ["examen complémentaire 1", "examen complémentaire 2"],
-  "orientation": "urgence et délai de consultation recommandé",
-  "confidence_score": score_de_confiance_0_a_1,
-  "clinical_notes": "observations cliniques additionnelles"
-}
-
-IMPORTANT: 
-- Répondez UNIQUEMENT avec le JSON, aucun autre texte
-- Si vous détectez des lésions suspectes (asymétrie, bordures irrégulières, couleurs multiples, diamètre >6mm, évolution), ajoutez des red_flags appropriés
-- Pour l'orientation, spécifiez URGENT (48h), Semi-urgent (1-2 semaines), ou Non urgent (2-4 semaines)
-- Soyez précis dans la localisation anatomique
-- Évaluez la confiance selon la qualité des images et la certitude diagnostique`;
-
-                // Construire les messages pour Claude
-                const messages = [
-                    {
-                        role: "user",
-                        content: [
-                            {
-                                type: "text",
-                                text: analysisPrompt
-                            },
-                            ...imageData
-                        ]
-                    }
-                ];
-
-                // Appel à l'API Claude
-                const response = await fetch("https://api.anthropic.com/v1/messages", {
-                    method: "POST",
+                
+                // Convertir les images base64 en blobs puis les uploader
+                const imageUrls = await uploadImagesToStorage();
+                
+                // Récupérer le contexte clinique
+                const context = {
+                    patient_age: document.getElementById('patientAge')?.value || null,
+                    patient_gender: document.getElementById('patientGender')?.value || null,
+                    chief_complaint: document.getElementById('chiefComplaint')?.value || null,
+                    symptoms: document.getElementById('symptoms')?.value?.split(',')
+                        .map(s => s.trim()).filter(Boolean) || [],
+                    medical_history: document.getElementById('medicalHistory')?.value?.split(',')
+                        .map(s => s.trim()).filter(Boolean) || []
+                };
+                
+                // ✅ Appel vers votre endpoint Next.js (pas Anthropic!)
+                const response = await fetch('/api/photo-diagnosis', {
+                    method: 'POST',
                     headers: {
-                        "Content-Type": "application/json",
+                        'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        model: "claude-sonnet-4-20250514",
-                        max_tokens: 2000,
-                        messages: messages
+                        photo_urls: imageUrls,
+                        context: context,
+                        options: {
+                            temperature: 0.2,
+                            maxTokens: 2000
+                        }
                     })
                 });
-
-                if (!response.ok) {
-                    throw new Error(`Erreur API: ${response.status} - ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                const analysisText = data.content[0].text;
                 
-                // Parser la réponse JSON de Claude
-                let analysis;
-                try {
-                    // Nettoyer la réponse au cas où il y aurait des backticks
-                    const cleanedResponse = analysisText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-                    analysis = JSON.parse(cleanedResponse);
-                } catch (parseError) {
-                    console.error('Erreur parsing JSON:', parseError);
-                    throw new Error('Réponse IA invalide');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
                 }
-
-                const endTime = Date.now();
-
-                // Créer les métadonnées
-                const metadata = {
-                    latency_ms: endTime - startTime,
-                    model: "Claude Sonnet 4 (Anthropic)",
-                    images_analyzed: selectedFiles.length,
-                    timestamp: new Date().toISOString(),
-                    file_names: selectedFiles.map(f => f.name),
-                    total_file_size: selectedFiles.reduce((sum, f) => sum + f.size, 0)
-                };
-
-                displayResults(analysis, metadata);
-
+                
+                const result = await response.json();
+                
+                if (result.success && result.analysis) {
+                    displayAnalysisResult(result.analysis);
+                    console.log('Métadonnées:', result.metadata);
+                } else {
+                    throw new Error('Format de réponse invalide');
+                }
+                
             } catch (error) {
                 console.error('Erreur lors de l\'analyse:', error);
-                
-                // En cas d'erreur, afficher un message d'erreur mais permettre une analyse de démonstration
-                if (confirm(`❌ Erreur lors de l'analyse IA: ${error.message}\n\nVoulez-vous voir une analyse de démonstration à la place?`)) {
-                    const mockData = createMockAnalysis();
-                    displayResults(mockData.analysis, mockData.metadata);
-                } else {
-                    document.getElementById('loading').classList.remove('show');
-                }
+                alert(`Erreur: ${error.message}`);
             } finally {
-                analyzeBtn.disabled = false;
-                analyzeBtn.innerHTML = '🧠 Analyser les photos';
+                showLoading(false);
             }
         }
 
-        // Fonction utilitaire pour convertir un file en base64
-        function convertToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    // Retirer le préfixe data:image/...;base64,
-                    const base64 = reader.result.split(',')[1];
-                    resolve(base64);
-                };
-                reader.onerror = () => reject(new Error('Erreur de lecture du fichier'));
-                reader.readAsDataURL(file);
-            });
+        // Upload des images vers un service temporaire (pour demo)
+        async function uploadImagesToStorage() {
+            // Pour la démo, on utilise les images base64 directement
+            // En production, vous devriez les uploader vers votre stockage
+            return uploadedImages;
         }
 
-        function createMockAnalysis() {
-            // Différentes analyses selon le nombre de fichiers
-            const analyses = [
-                {
-                    analysis: {
-                        lesions: [{
-                            location: "Avant-bras droit",
-                            morphology: "Plaque érythémateuse bien délimitée",
-                            size_mm: 15,
-                            features: ["érythème", "desquamation fine", "bordures nettes"]
-                        }],
-                        diagnostic_diff: ["Dermatite de contact", "Eczéma nummulaire", "Psoriasis localisé"],
-                        red_flags: [],
-                        suggested_tests: ["Tests allergologiques", "Évaluation des facteurs déclenchants"],
-                        orientation: "Non urgent - Consultation dermatologique dans les 2-4 semaines",
-                        confidence_score: 0.78
-                    },
-                    metadata: {
-                        latency_ms: 2340,
-                        model: "Tibok Demo AI v2.0",
-                        images_analyzed: selectedFiles.length,
-                        estimated_cost_usd: 0.015,
-                        timestamp: new Date().toISOString()
-                    }
-                },
-                {
-                    analysis: {
-                        lesions: [{
-                            location: "Jambe gauche",
-                            morphology: "Lésion pigmentée asymétrique",
-                            size_mm: 8,
-                            features: ["asymétrie", "bordures irrégulières", "couleur hétérogène"]
-                        }],
-                        diagnostic_diff: ["Naevus atypique", "Mélanome (à exclure)", "Kératose séborrhéique"],
-                        red_flags: ["Asymétrie de la lésion", "Bordures irrégulières", "Changement récent signalé"],
-                        suggested_tests: ["Dermoscopie en urgence", "Biopsie excisionnelle si suspicion"],
-                        orientation: "URGENT - Consultation dermatologique dans les 48h",
-                        confidence_score: 0.85
-                    },
-                    metadata: {
-                        latency_ms: 1890,
-                        model: "Tibok Demo AI v2.0",
-                        images_analyzed: selectedFiles.length,
-                        estimated_cost_usd: 0.020,
-                        timestamp: new Date().toISOString()
-                    }
-                }
-            ];
-
-            return analyses[Math.min(selectedFiles.length - 1, analyses.length - 1)];
-        }
-
-        function displayResults(analysis, metadata) {
-            const content = document.getElementById('analysisContent');
+        // Affichage des résultats - AMÉLIORÉ
+        function displayAnalysisResult(analysis) {
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsContainer = document.getElementById('analysisResults');
+            
             let html = '';
 
-            // Metadata
-            html += `
-                <div class="metadata">
-                    <div><strong>⏱️ ${metadata.latency_ms}ms</strong>Temps d'analyse</div>
-                    <div><strong>🤖 ${metadata.model}</strong>Modèle IA</div>
-                    <div><strong>📸 ${metadata.images_analyzed}</strong>Images analysées</div>
-                    <div><strong>🎯 ${(analysis.confidence_score * 100).toFixed(1)}%</strong>Confiance</div>
-                    ${metadata.total_file_size ? `<div><strong>💾 ${(metadata.total_file_size / 1024 / 1024).toFixed(1)}MB</strong>Taille totale</div>` : ''}
-                    <div><strong>✅ Vraie IA</strong>Analyse authentique</div>
-                </div>
-            `;
+            // Score de confiance
+            if (analysis.confidence_score !== undefined) {
+                const confidenceClass = analysis.confidence_score > 0.7 ? 'confidence-high' : 
+                                      analysis.confidence_score > 0.4 ? 'confidence-moderate' : 'confidence-low';
+                html += `<div class="diagnostic-item">
+                    <strong>Score de confiance</strong>
+                    <span class="confidence-score ${confidenceClass}">
+                        ${Math.round(analysis.confidence_score * 100)}%
+                    </span>
+                </div>`;
+            }
 
-            // Lesions
+            // Lésions
             if (analysis.lesions && analysis.lesions.length > 0) {
-                html += '<div class="result-section"><h3>🔍 Lésions identifiées</h3>';
+                html += '<h4>🔍 Lésions Identifiées</h4>';
                 analysis.lesions.forEach((lesion, index) => {
-                    html += `
-                        <div class="lesion-card">
-                            <h4><strong>Lésion ${index + 1}</strong></h4>
-                            <p><strong>📍 Localisation :</strong> ${lesion.location}</p>
-                            <p><strong>🔬 Morphologie :</strong> ${lesion.morphology}</p>
-                            ${lesion.size_mm ? `<p><strong>📏 Taille :</strong> ${lesion.size_mm} mm</p>` : ''}
-                            ${lesion.borders ? `<p><strong>🔲 Bordures :</strong> ${lesion.borders}</p>` : ''}
-                            ${lesion.features && lesion.features.length > 0 ? 
-                                `<p><strong>✨ Caractéristiques :</strong> ${lesion.features.join(', ')}</p>` : ''}
-                        </div>
-                    `;
+                    html += `<div class="diagnostic-item">
+                        <strong>Lésion ${index + 1} - ${lesion.location}</strong>
+                        <p><strong>Morphologie:</strong> ${lesion.morphology}</p>
+                        ${lesion.size_mm ? `<p><strong>Taille:</strong> ${lesion.size_mm}mm</p>` : ''}
+                        ${lesion.borders ? `<p><strong>Bordures:</strong> ${lesion.borders}</p>` : ''}
+                        ${lesion.features?.length ? `<p><strong>Caractéristiques:</strong> ${lesion.features.join(', ')}</p>` : ''}
+                    </div>`;
                 });
-                html += '</div>';
             }
 
             // Diagnostic différentiel
             if (analysis.diagnostic_diff && analysis.diagnostic_diff.length > 0) {
-                html += '<div class="result-section"><h3>🩺 Hypothèses diagnostiques</h3>';
-                html += '<ul class="diagnostic-list">';
-                analysis.diagnostic_diff.forEach((diagnosis, index) => {
-                    html += `<li><strong>${index + 1}.</strong> ${diagnosis}</li>`;
+                html += '<h4>🎯 Diagnostic Différentiel</h4>';
+                analysis.diagnostic_diff.forEach((diag, index) => {
+                    const likelihood = typeof diag === 'object' ? diag.likelihood : 'moderate';
+                    const condition = typeof diag === 'object' ? diag.condition : diag;
+                    const reasoning = typeof diag === 'object' ? diag.reasoning : '';
+                    
+                    const likelihoodClass = likelihood === 'high' ? 'confidence-high' : 
+                                          likelihood === 'moderate' ? 'confidence-moderate' : 'confidence-low';
+                    
+                    html += `<div class="diagnostic-item">
+                        <strong>${index + 1}. ${condition}</strong>
+                        <span class="confidence-score ${likelihoodClass}">${likelihood}</span>
+                        ${reasoning ? `<p>${reasoning}</p>` : ''}
+                    </div>`;
                 });
-                html += '</ul></div>';
             }
 
             // Signaux d'alarme
             if (analysis.red_flags && analysis.red_flags.length > 0) {
-                html += '<div class="result-section"><h3>🚨 Signaux d\'alarme détectés</h3>';
-                html += '<ul class="diagnostic-list">';
-                analysis.red_flags.forEach((flag) => {
-                    html += `<li class="red-flag"><strong>⚠️</strong> ${flag}</li>`;
+                html += '<h4>🚨 Signaux d\'Alarme</h4>';
+                analysis.red_flags.forEach(flag => {
+                    html += `<div class="diagnostic-item red-flag">⚠️ ${flag}</div>`;
                 });
-                html += '</ul></div>';
-            } else {
-                html += '<div class="result-section"><h3>✅ Aucun signal d\'alarme majeur</h3>';
-                html += '<p style="color: #28a745; font-weight: 500;">Aucun élément préoccupant identifié dans l\'analyse actuelle.</p></div>';
             }
 
-            // Examens suggérés
-            if (analysis.suggested_tests && analysis.suggested_tests.length > 0) {
-                html += '<div class="result-section"><h3>🧪 Examens complémentaires suggérés</h3>';
-                html += '<ul class="diagnostic-list">';
-                analysis.suggested_tests.forEach((test) => {
-                    html += `<li><strong>📋</strong> ${test}</li>`;
+            // Examens recommandés
+            if (analysis.recommended_exams && analysis.recommended_exams.length > 0) {
+                html += '<h4>🧪 Examens Recommandés</h4>';
+                analysis.recommended_exams.forEach(exam => {
+                    html += `<div class="diagnostic-item">📋 ${exam}</div>`;
                 });
-                html += '</ul></div>';
             }
 
-            // Orientation
-            if (analysis.orientation) {
-                const isUrgent = analysis.orientation.includes('URGENT');
-                const isSemiUrgent = analysis.orientation.includes('Semi-urgent');
-                const urgencyColor = isUrgent ? '#dc3545' : isSemiUrgent ? '#fd7e14' : '#28a745';
+            // Pistes thérapeutiques
+            if (analysis.treatment_hints && analysis.treatment_hints.length > 0) {
+                html += '<h4>💊 Pistes Thérapeutiques</h4>';
+                analysis.treatment_hints.forEach(hint => {
+                    html += `<div class="diagnostic-item">💡 ${hint}</div>`;
+                });
+            }
+
+            // Niveau d'urgence
+            if (analysis.urgency_level) {
+                const urgencyColors = {
+                    'immediate': '#e74c3c',
+                    'urgent': '#f39c12',
+                    'routine': '#27ae60',
+                    'monitoring': '#3498db'
+                };
                 
-                html += `
-                    <div class="result-section">
-                        <h3>🎯 Orientation thérapeutique</h3>
-                        <div class="lesion-card" style="border-left-color: ${urgencyColor}; background: ${isUrgent ? '#fff5f5' : isSemiUrgent ? '#fff8f0' : '#f0fff4'};">
-                            <p style="color: ${urgencyColor}; font-weight: 600; font-size: 1.1rem;">
-                                ${isUrgent ? '🚨 ' : isSemiUrgent ? '⚡ ' : '✅ '}${analysis.orientation}
-                            </p>
-                        </div>
-                    </div>
-                `;
+                html += `<div class="diagnostic-item" style="border-left-color: ${urgencyColors[analysis.urgency_level]}">
+                    <strong>📅 Niveau d'urgence:</strong> ${analysis.urgency_level}
+                </div>`;
             }
 
-            // Notes cliniques additionnelles
-            if (analysis.clinical_notes) {
-                html += `
-                    <div class="result-section">
-                        <h3>📝 Observations cliniques</h3>
-                        <div class="lesion-card">
-                            <p><strong>💡 Notes du dermatologue IA :</strong></p>
-                            <p style="font-style: italic; color: #555; margin-top: 10px;">${analysis.clinical_notes}</p>
-                        </div>
-                    </div>
-                `;
+            // Recommandations cliniques
+            if (analysis.clinical_recommendations) {
+                html += `<div class="diagnostic-item">
+                    <strong>📝 Recommandations Cliniques</strong>
+                    <p>${analysis.clinical_recommendations}</p>
+                </div>`;
             }
 
-            content.innerHTML = html;
-            document.getElementById('results').classList.add('show');
-            
-            // Scroll vers les résultats
-            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+            // Disclaimer
+            html += `<div class="diagnostic-item red-flag">
+                <strong>⚠️ IMPORTANT</strong>
+                <p>Cette analyse est un outil d'aide au diagnostic uniquement. 
+                Consultez toujours un professionnel de santé qualifié pour un diagnostic définitif et un traitement approprié.</p>
+            </div>`;
+
+            resultsContainer.innerHTML = html;
+            resultsSection.style.display = 'block';
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
         }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loadingIndicator');
+            const button = document.querySelector('.btn');
+            
+            if (show) {
+                loading.style.display = 'block';
+                button.disabled = true;
+                button.textContent = 'Analyse en cours...';
+            } else {
+                loading.style.display = 'none';
+                button.disabled = false;
+                button.textContent = '🔍 Analyser les Photos';
+            }
+        }
+
+        // Test des endpoints au chargement
+        window.addEventListener('load', async () => {
+            console.log('🔧 Test des endpoints API...');
+            
+            try {
+                const response = await fetch('/api/photo-diagnosis', { method: 'GET' });
+                const data = await response.json();
+                console.log('✅ API photo-diagnosis disponible:', data);
+            } catch (error) {
+                console.error('❌ API photo-diagnosis indisponible:', error);
+            }
+        });
     </script>
 </body>
 </html>
